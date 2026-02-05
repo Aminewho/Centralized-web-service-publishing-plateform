@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import ApiListPage from './pages/ApiListPage';
 import ApiDetailsPage from './pages/ApiDetailsPage';
-
+import AppListPage from './pages/AppListPage';
+import AppDetailsPage from './pages/AppDetailsPage';
 function App() {
   return (
     <Router>
@@ -21,9 +22,8 @@ function App() {
             <Route path="/api/:id" element={<ApiDetailsPage />} />
             
             {/* On pourra ajouter la route Applications ici plus tard */}
-            <Route path="/applications" element={
-              <div className="py-20 text-center text-gray-400">Section Applications en cours de développement...</div>
-            } />
+            <Route path="/applications" element={<AppListPage />} />
+            <Route path="/application/:id" element={<AppDetailsPage />} />
           </Routes>
         </main>
 
