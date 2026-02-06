@@ -1,30 +1,51 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import ApiCard from '../components/ApiCard';
-import { useParams } from 'react-router-dom';
+import CreateApiModal from '../components/CreateApiModal';
+
 const ApiListPage = () => {
   const [apis, setApis] = useState([]);
-const { id } = useParams(); // Récupère l'ID depuis l'URL
-  useEffect(() => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const fetchApis = () => {
     axios.get('http://localhost:8080/apis')
       .then(res => setApis(res.data.apis))
-      .catch(err => console.error("Erreur Backend:", err));
+      .catch(err => console.error(err));
+  };
+
+  useEffect(() => {
+    fetchApis();
   }, []);
 
   return (
-    <div className="w-full bg-[#f8fafc] py-12"> 
-      <div className="max-w-7xl mx-auto px-4">
-        <h1 className="text-center text-3xl font-bold text-[#1a2b49] mb-12 uppercase">
-          Accès rapide aux services
-        </h1>
-        
-        {/* Grille forcée : 4 colonnes sur PC, 1 sur Mobile */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {apis.map(api => (
-            <ApiCard key={api.id} api={api} />
-          ))}
+    <div className="animate-in fade-in duration-700">
+      <div className="flex justify-between items-end mb-12">
+        <div className="text-left">
+          <h1 className="text-3xl font-black text-[#1a2b49] mb-2 uppercase tracking-tighter">Gestion du Catalogue</h1>
+          <div className="w-20 h-1.5 bg-[#3ab1bb] rounded-full"></div>
         </div>
+        
+        {/* BOUTON CREER API */}
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="bg-[#1a2b49] text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-slate-800 transition-all flex items-center gap-2"
+        >
+          <span className="text-xl font-light">+</span> CRÉER ET PUBLIER UNE API
+        </button>
       </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        {apis.map(api => (
+          <ApiCard key={api.id} api={api} />
+        ))}
+      </div>
+
+      {/* MODAL / SLIDE-OVER */}
+      <CreateApiModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onApiCreated={fetchApis} 
+      />
     </div>
   );
 };
