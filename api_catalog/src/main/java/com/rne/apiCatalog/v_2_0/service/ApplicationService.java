@@ -63,81 +63,78 @@ public class ApplicationService {
                 (String) keyResponse.get("keyState")
         );
     }
-    public AppDetailsDto getAppDetails(String appId) {
-        String token = authService.getAccessToken();
+  public AppDetailsDto getAppDetails(String appId) {
+    String token = authService.getAccessToken();
 
-        // 1. Récupérer les Clés OAuth (Consumer Key & Secret)
-        var keysResponse = devPortalClient.get()
-                .uri("/applications/{appId}/oauth-keys", appId)
-                .header("Authorization", "Bearer " + token)
-                .retrieve()
-                .body(Map.class);
+    // 1. APPEL EXPLICITE : Récupérer les infos de base de l'Application (Source de vérité)
+    // Cet appel garantit d'avoir le nom et le statut même sans souscription
+    var appResponse = devPortalClient.get()
+            .uri("/applications/{appId}", appId)
+            .header("Authorization", "Bearer " + token)
+            .retrieve()
+            .body(Map.class);
 
-        String consumerKey = null;
-        String consumerSecret = null;
-        
-        List<Map<String, Object>> keyList = (List<Map<String, Object>>) keysResponse.get("list");
-        if (keyList != null && !keyList.isEmpty()) {
-            consumerKey = (String) keyList.get(0).get("consumerKey");
-            consumerSecret = (String) keyList.get(0).get("consumerSecret");
-        }
+    String appName = (String) appResponse.get("name");
+    String appPolicy = (String) appResponse.get("throttlingPolicy");
+    String appStatus = (String) appResponse.get("status");
 
-        // 2. Récupérer les Subscriptions (APIs liées à l'app)
-        var subResponse = devPortalClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/subscriptions")
-                        .queryParam("applicationId", appId)
-                        .build())
-                .header("Authorization", "Bearer " + token)
-                .retrieve()
-                .body(Map.class);
+    // 2. Récupérer les Clés OAuth
+    var keysResponse = devPortalClient.get()
+            .uri("/applications/{appId}/oauth-keys", appId)
+            .header("Authorization", "Bearer " + token)
+            .retrieve()
+            .body(Map.class);
 
-        List<Map<String, Object>> subListRaw = (List<Map<String, Object>>) subResponse.get("list");
-        
-        // 3. Transformation des données pour le mapping
-        List<AppDetailsDto.SubscriptionInfo> subscriptions = subListRaw.stream().map(sub -> {
-            Map<String, Object> apiRaw = (Map<String, Object>) sub.get("apiInfo");
-            
-            var apiInfo = new AppDetailsDto.ApiBriefInfo(
-                (String) apiRaw.get("id"),
-                (String) apiRaw.get("name"),
-                (String) apiRaw.get("description"),
-                (String) apiRaw.get("context"),
-                (String) apiRaw.get("version")
-            );
-
-            return new AppDetailsDto.SubscriptionInfo(
-                (String) sub.get("subscriptionId"),
-                (String) sub.get("apiId"),
-                apiInfo,
-                (String) sub.get("throttlingPolicy"),
-                (String) sub.get("status")
-            );
-        }).toList();
-
-        // On récupère les infos de l'application depuis la première subscription si disponible
-        String appName = "N/A";
-        String appPolicy = "N/A";
-        String appStatus = "N/A";
-        
-        if (!subListRaw.isEmpty()) {
-            Map<String, Object> appRaw = (Map<String, Object>) subListRaw.get(0).get("applicationInfo");
-            appName = (String) appRaw.get("name");
-            appPolicy = (String) appRaw.get("throttlingPolicy");
-            appStatus = (String) appRaw.get("status");
-        }
-
-        // 4. Retourner l'objet complet
-        return new AppDetailsDto(
-                appId,
-                appName,
-                consumerKey,
-                consumerSecret,
-                appPolicy,
-                appStatus,
-                subscriptions
-        );
+    String consumerKey = null;
+    String consumerSecret = null;
+    List<Map<String, Object>> keyList = (List<Map<String, Object>>) keysResponse.get("list");
+    if (keyList != null && !keyList.isEmpty()) {
+        consumerKey = (String) keyList.get(0).get("consumerKey");
+        consumerSecret = (String) keyList.get(0).get("consumerSecret");
     }
+
+    // 3. Récupérer les Subscriptions
+    var subResponse = devPortalClient.get()
+            .uri(uriBuilder -> uriBuilder
+                    .path("/subscriptions")
+                    .queryParam("applicationId", appId)
+                    .build())
+            .header("Authorization", "Bearer " + token)
+            .retrieve()
+            .body(Map.class);
+
+    List<Map<String, Object>> subListRaw = (List<Map<String, Object>>) subResponse.get("list");
+    List<AppDetailsDto.SubscriptionInfo> subscriptions = (subListRaw == null) ? List.of() : subListRaw.stream().map(sub -> {
+        Map<String, Object> apiRaw = (Map<String, Object>) sub.get("apiInfo");
+        
+        var apiInfo = new AppDetailsDto.ApiBriefInfo(
+            (String) apiRaw.get("id"),
+            (String) apiRaw.get("name"),
+            (String) apiRaw.get("description"),
+            (String) apiRaw.get("context"),
+            (String) apiRaw.get("version")
+        );
+
+        return new AppDetailsDto.SubscriptionInfo(
+            (String) sub.get("subscriptionId"),
+            (String) sub.get("apiId"),
+            apiInfo,
+            (String) sub.get("throttlingPolicy"),
+            (String) sub.get("status")
+        );
+    }).toList();
+
+    // 4. Retourner l'objet complet avec les infos de l'étape 1
+    return new AppDetailsDto(
+            appId,
+            appName,
+            consumerKey,
+            consumerSecret,
+            appPolicy,
+            appStatus,
+            subscriptions
+    );
+}
     public ApplicationBriefDto.ListResponse getAllApplications() {
         String token = authService.getAccessToken();
 

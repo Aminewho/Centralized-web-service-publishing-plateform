@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
+// Base API URL (configurable via Vite env var VITE_API_BASE_URL)
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 const AppDetailsPage = () => {
   const { id } = useParams();
   const [details, setDetails] = useState(null);
 
   useEffect(() => {
-    axios.get(`http://localhost:8080/applications/${id}/details`)
+    axios.get(`${API_BASE}/applications/${id}/details`)
       .then(res => setDetails(res.data))
       .catch(err => console.error(err));
   }, [id]);

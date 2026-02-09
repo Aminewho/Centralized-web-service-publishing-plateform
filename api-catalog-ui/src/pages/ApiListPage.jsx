@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+// Base API URL (configurable via Vite env var VITE_API_BASE_URL)
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 import ApiCard from '../components/ApiCard';
 import CreateApiModal from '../components/CreateApiModal';
 
@@ -8,7 +10,7 @@ const ApiListPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchApis = () => {
-    axios.get('http://localhost:8080/apis')
+    axios.get(`${API_BASE}/apis`)
       .then(res => setApis(res.data.apis))
       .catch(err => console.error(err));
   };

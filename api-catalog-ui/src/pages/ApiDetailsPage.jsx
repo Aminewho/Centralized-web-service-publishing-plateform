@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import PolicySelector from '../components/PolicySelector';
+// Base API URL (configurable via Vite env var VITE_API_BASE_URL)
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 const ApiDetailsPage = () => {
   const { id } = useParams();
@@ -8,7 +11,7 @@ const ApiDetailsPage = () => {
   const [details, setDetails] = useState(null);
 
   useEffect(() => {
-    axios.get(`http://localhost:8080/api/v1/publisher/apis/${id}/full-details`)
+    axios.get(`${API_BASE}/api/v1/publisher/apis/${id}/full-details`)
       .then(res => setDetails(res.data))
       .catch(err => console.error(err));
   }, [id]);
@@ -41,12 +44,20 @@ const ApiDetailsPage = () => {
               {details.endpointConfig?.production_endpoints?.url}
             </div>
             
-            <h2 className="text-lg font-bold text-[#1a2b49] border-l-4 border-[#3ab1bb] pl-4">Politiques Throttling</h2>
-            <div className="flex gap-2">
-              {details.policies.map(p => (
-                <span key={p} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-md text-xs font-bold">{p}</span>
-              ))}
-            </div>
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+  <div className="space-y-6">
+    {/* Ta section Endpoint existante ... */}
+    
+    {/* REMPLACE l'ancien affichage des politiques par le composant intelligent */}
+    <h2 className="text-lg font-bold text-[#1a2b49] border-l-4 border-[#3ab1bb] pl-4 mb-4">
+      Gestion des Politiques 
+    </h2>
+    <PolicySelector apiId={id} />
+  </div>
+
+  {/* Ta section Abonnements existante ... */}
+</div>
           </div>
 
           {/* Section Abonnements */}

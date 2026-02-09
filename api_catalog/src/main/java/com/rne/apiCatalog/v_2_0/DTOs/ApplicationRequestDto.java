@@ -12,6 +12,7 @@ public record ApplicationRequestDto(
     public ApplicationRequestDto {
         if (throttlingPolicy == null) throttlingPolicy = "Unlimited";
         if (tokenType == null) tokenType = "JWT";
+        if(description == null) description = "";
     }
 
     // DTO interne pour la génération de clés (WSO2)

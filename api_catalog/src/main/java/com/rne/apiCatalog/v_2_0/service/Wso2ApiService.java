@@ -49,32 +49,37 @@ public class Wso2ApiService {
     }
 
     // --- AJOUT: getCombinedPolicies (Requis par ApiPolicyController) ---
-    public List<PolicySelectionDto> getCombinedPolicies(String apiId) {
-        String token = authService.getAccessToken();
+   public List<PolicySelectionDto> getCombinedPolicies(String apiId) {
+    String token = authService.getAccessToken();
 
-        var allPoliciesResponse = restClient.get()
-                .uri(PUBLISHER_PATH + "/throttling-policies/subscription")
-                .header("Authorization", "Bearer " + token)
-                .retrieve()
-                .body(Map.class);
+    var allPoliciesResponse = restClient.get()
+            .uri(PUBLISHER_PATH + "/throttling-policies/subscription")
+            .header("Authorization", "Bearer " + token)
+            .retrieve()
+            .body(Map.class);
 
-        List<Map<String, Object>> allList = (List<Map<String, Object>>) allPoliciesResponse.get("list");
-        List<String> allNames = allList.stream().map(p -> (String) p.get("name")).toList();
+    List<Map<String, Object>> allList = (List<Map<String, Object>>) allPoliciesResponse.get("list");
 
-        var attachedPoliciesResponse = restClient.get()
-                .uri(PUBLISHER_PATH + "/apis/{apiId}/subscription-policies", apiId)
-                .header("Authorization", "Bearer " + token)
-                .retrieve()
-                .body(List.class);
+    // Extraction des noms avec FILTRAGE pour exclure 'DefaultSubscriptionless'
+    List<String> allNames = allList.stream()
+            .map(p -> (String) p.get("name"))
+            .filter(name -> !"DefaultSubscriptionless".equalsIgnoreCase(name)) // <-- Filtre ajouté ici
+            .toList();
 
-        List<String> attachedNames = ((List<Map<String, Object>>) attachedPoliciesResponse).stream()
-                .map(p -> (String) p.get("name")).toList();
+    var attachedPoliciesResponse = restClient.get()
+            .uri(PUBLISHER_PATH + "/apis/{apiId}/subscription-policies", apiId)
+            .header("Authorization", "Bearer " + token)
+            .retrieve()
+            .body(List.class);
 
-        return allNames.stream()
-                .map(name -> new PolicySelectionDto(name, attachedNames.contains(name)))
-                .toList();
-    }
+    List<String> attachedNames = ((List<Map<String, Object>>) attachedPoliciesResponse).stream()
+            .map(p -> (String) p.get("name")).toList();
 
+    return allNames.stream()
+            .map(name -> new PolicySelectionDto(name, attachedNames.contains(name)))
+            .sorted((p1, p2) -> p1.name().compareToIgnoreCase(p2.name())) // Optionnel: Tri alphabétique
+            .toList();
+}
     // --- AJOUT: updateApiSubscriptionPolicies (Requis par ApiPolicyController) ---
     public void updateApiSubscriptionPolicies(String apiId, List<String> newPolicies) {
         String token = authService.getAccessToken();

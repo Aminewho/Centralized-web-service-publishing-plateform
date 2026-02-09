@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
+// Base API URL (configurable via Vite env var VITE_API_BASE_URL)
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
 const CreateApiModal = ({ isOpen, onClose, onApiCreated }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -59,7 +62,7 @@ const CreateApiModal = ({ isOpen, onClose, onApiCreated }) => {
 
     try {
         console.log("Données envoyées pour création API :", body);
-      await axios.post('http://localhost:8080/apis/create-and-publish', body);
+  await axios.post(`${API_BASE}/apis/create-and-publish`, body);
       // Reset
       setFormData({ name: '', context: '', version: '', endpoint: '' });
       setPathVariables([]);
