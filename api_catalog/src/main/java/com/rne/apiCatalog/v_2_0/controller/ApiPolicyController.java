@@ -10,7 +10,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.rne.apiCatalog.v_2_0.DTOs.PolicySelectionDto;
+import com.rne.apiCatalog.v_2_0.DTOs.PolicySummaryDto;
 import com.rne.apiCatalog.v_2_0.DTOs.PolicyUpdateRequest;
+import com.rne.apiCatalog.v_2_0.DTOs.SubscriptionPolicyRequest;
 import com.rne.apiCatalog.v_2_0.service.Wso2ApiService;
 @RestController
 @RequestMapping("/api/v1/publisher/apis")
@@ -37,6 +39,20 @@ public class ApiPolicyController {
             return ResponseEntity.ok("API policies updated successfully.");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    @GetMapping("/all-policies")
+public ResponseEntity<List<SubscriptionPolicyRequest>> getAllPolicies() {
+    List<SubscriptionPolicyRequest> policies = wso2Service.getAllSubscriptionPolicies();
+    return ResponseEntity.ok(policies);
+}
+@GetMapping("/policies")
+    public ResponseEntity<List<PolicySummaryDto>> getAvailablePolicies() {
+        try {
+            List<PolicySummaryDto> policies = wso2Service.getAvailablePolicies();
+            return ResponseEntity.ok(policies);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
         }
     }
 }

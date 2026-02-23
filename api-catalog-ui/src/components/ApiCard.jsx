@@ -36,7 +36,7 @@ const ApiCard = ({ api }) => {
 
       {/* Bouton stylisé RNE */}
       <div className="w-full bg-[#3ab1bb] text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center group-hover:bg-[#2d8d96] transition-colors shadow-lg shadow-cyan-100">
-        Accès au service / الولوج إلى الخدمة <span className="ml-2">→</span>
+        Détails de l'API  <span className="ml-2"></span>
       </div>
     </div>
   );

@@ -1,52 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-// Base API URL (configurable via Vite env var VITE_API_BASE_URL)
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 const CreateApiModal = ({ isOpen, onClose, onApiCreated }) => {
   const [formData, setFormData] = useState({
     name: '',
     context: '',
-    version: '',
+    version: '1.0.0',
     endpoint: ''
   });
   
-  // État pour les variables de chemin (target)
   const [pathVariables, setPathVariables] = useState([]);
+  const [policies, setPolicies] = useState([]); // Liste des politiques API
+  const [selectedPolicy, setSelectedPolicy] = useState(null); // Politique choisie
   const [loading, setLoading] = useState(false);
 
-  // Ajouter un nouvel input pour une variable
-  const addVariable = () => {
-    setPathVariables([...pathVariables, '']);
-  };
+  // 1. Charger les politiques au montage de la modal
+  useEffect(() => {
+    if (isOpen) {
+      axios.get(`${API_BASE}/api/v1/publisher/apis/policies`)
+        .then(res => setPolicies(res.data))
+        .catch(err => console.error("Erreur lors du chargement des politiques:", err));
+    }
+  }, [isOpen]);
 
-  // Modifier le nom d'une variable spécifique
+  const addVariable = () => setPathVariables([...pathVariables, '']);
+
   const handleVariableChange = (index, value) => {
     const updatedVars = [...pathVariables];
     updatedVars[index] = value;
     setPathVariables(updatedVars);
   };
 
-  // Supprimer une variable
-  const removeVariable = (index) => {
-    setPathVariables(pathVariables.filter((_, i) => i !== index));
-  };
+  const removeVariable = (index) => setPathVariables(pathVariables.filter((_, i) => i !== index));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    // Construction du target : si pas de variables, on met /*
-    // Sinon on construit /{var1}/{var2}...
     const targetPath = pathVariables.length > 0 
       ? '/' + pathVariables.map(v => `{${v}}`).join('/')
       : '/*';
 
+    // Construction du body avec la politique d'opération
     const body = {
       name: formData.name,
       context: formData.context,
-      version: "1.0.0", // Version par défaut, peut être modifiée pour être un champ du formulaire
+      version: formData.version,
       endpointConfig: {
         endpoint_type: "http",
         production_endpoints: { url: formData.endpoint },
@@ -56,20 +57,33 @@ const CreateApiModal = ({ isOpen, onClose, onApiCreated }) => {
         target: targetPath,
         verb: "GET",
         authType: "Application & Application User",
-        throttlingPolicy: "Unlimited"
+        throttlingPolicy: "Unlimited",
+        // Ajout de la politique sélectionnée ici
+        operationPolicies: {
+          request: [],
+          response: selectedPolicy ? [
+            {
+              policyName: selectedPolicy.name,
+              policyVersion: selectedPolicy.version,
+              policyId: selectedPolicy.id,
+              parameters: {}
+            }
+          ] : [],
+          fault: []
+        }
       }]
     };
 
     try {
-        console.log("Données envoyées pour création API :", body);
-  await axios.post(`${API_BASE}/apis/create-and-publish`, body);
-      // Reset
-      setFormData({ name: '', context: '', version: '', endpoint: '' });
+      await axios.post(`${API_BASE}/apis/create-and-publish`, body);
+      setFormData({ name: '', context: '', version: '1.0.0', endpoint: '' });
       setPathVariables([]);
+      setSelectedPolicy(null);
       onApiCreated();
       onClose();
     } catch (err) {
       alert("Erreur de publication. Vérifiez la console.");
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -83,15 +97,14 @@ const CreateApiModal = ({ isOpen, onClose, onApiCreated }) => {
         
         <div className="p-8 bg-[#1a2b49] text-white">
           <div className="flex justify-between items-center mb-2">
-            <h2 className="text-2xl font-black uppercase">Configuration API</h2>
-            <button onClick={onClose} className="text-3xl">&times;</button>
+            <h2 className="text-2xl font-black uppercase tracking-tighter">Configuration API</h2>
+            <button onClick={onClose} className="text-3xl hover:text-[#3ab1bb]">&times;</button>
           </div>
-          <p className="text-[#3ab1bb] text-xs font-bold uppercase tracking-widest">Publication WSO2</p>
+          <p className="text-[#3ab1bb] text-xs font-bold uppercase tracking-widest">Publication WSO2 APK</p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-8 flex-grow overflow-y-auto space-y-8">
           
-          {/* Champs obligatoires standards */}
           <div className="space-y-6">
             <div className="border-b-2 border-gray-100 focus-within:border-[#3ab1bb] py-2">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Nom de l'API *</label>
@@ -105,25 +118,44 @@ const CreateApiModal = ({ isOpen, onClose, onApiCreated }) => {
 
             <div className="border-b-2 border-gray-100 focus-within:border-[#3ab1bb] py-2">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">URL Backend *</label>
-              <input required type="url" className="w-full bg-transparent outline-none text-sm font-mono" value={formData.endpoint} onChange={(e) => setFormData({...formData, endpoint: e.target.value})} />
+              <input required type="url" className="w-full bg-transparent outline-none text-sm font-mono text-slate-600" value={formData.endpoint} onChange={(e) => setFormData({...formData, endpoint: e.target.value})} />
             </div>
           </div>
 
-          {/* SECTION DYNAMIQUE : TARGET VARIABLES */}
-          <div className="space-y-4 pt-4">
+          {/* SÉLECTEUR DE POLITIQUE (NOUVEAU) */}
+          <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+            <label className="text-[10px] font-black text-[#1a2b49] uppercase tracking-widest block">
+              Politique d'opération (Response Flow)
+            </label>
+            <select 
+              className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-bold text-slate-700 focus:border-[#3ab1bb]"
+              onChange={(e) => {
+                const policy = policies.find(p => p.id === e.target.value);
+                setSelectedPolicy(policy);
+              }}
+              value={selectedPolicy?.id || ""}
+            >
+              <option value="">Aucune politique sélectionnée</option>
+              {policies.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.displayName} ({p.version})
+                </option>
+              ))}
+            </select>
+            <p className="text-[9px] text-slate-400 font-medium">
+              Cette politique sera appliquée au flux de réponse de l'opération GET.
+            </p>
+          </div>
+
+          {/* VARIABLES DE CHEMIN */}
+          <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <label className="text-[10px] font-black text-[#1a2b49] uppercase tracking-widest">Variables de chemin (URL)</label>
-              <button 
-                type="button"
-                onClick={addVariable}
-                className="text-[#3ab1bb] text-xs font-bold hover:underline"
-              >
-                + AJOUTER UNE VARIABLE
-              </button>
+              <label className="text-[10px] font-black text-[#1a2b49] uppercase tracking-widest">Ressource dynamique</label>
+              <button type="button" onClick={addVariable} className="text-[#3ab1bb] text-[10px] font-black hover:underline uppercase">+ Ajouter</button>
             </div>
 
             {pathVariables.length === 0 ? (
-              <p className="text-xs text-gray-400 italic bg-gray-50 p-3 rounded">Par défaut : /* (Toutes les ressources)</p>
+              <p className="text-[11px] text-gray-400 italic bg-gray-50 p-4 rounded-xl border border-dashed">Route par défaut : /*</p>
             ) : (
               <div className="space-y-3">
                 {pathVariables.map((variable, index) => (
@@ -131,18 +163,16 @@ const CreateApiModal = ({ isOpen, onClose, onApiCreated }) => {
                     <span className="text-gray-300 font-mono">/{"{"}</span>
                     <input 
                       required
-                      placeholder="nom_variable"
-                      className="flex-grow border-b border-gray-200 outline-none text-sm font-bold text-[#3ab1bb]"
+                      placeholder="id, name..."
+                      className="flex-grow border-b border-gray-200 outline-none text-sm font-bold text-[#3ab1bb] bg-transparent"
                       value={variable}
                       onChange={(e) => handleVariableChange(index, e.target.value)}
                     />
                     <span className="text-gray-300 font-mono">{"}"}</span>
-                    <button 
-                      type="button" 
-                      onClick={() => removeVariable(index)}
-                      className="text-red-400 text-xs hover:text-red-600 px-2"
-                    >
-                      Supprimer
+                    <button type="button" onClick={() => removeVariable(index)} className="text-red-400 hover:text-red-600">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
                     </button>
                   </div>
                 ))}
@@ -153,11 +183,11 @@ const CreateApiModal = ({ isOpen, onClose, onApiCreated }) => {
           <button 
             type="submit"
             disabled={loading}
-            className={`w-full py-4 rounded-xl font-black uppercase text-white shadow-lg transition-all ${
-              loading ? 'bg-gray-300' : 'bg-[#3ab1bb] hover:bg-[#1a2b49]'
+            className={`w-full py-5 rounded-2xl font-black uppercase tracking-widest text-white shadow-xl transition-all ${
+              loading ? 'bg-slate-200 cursor-wait' : 'bg-[#3ab1bb] hover:bg-[#1a2b49] active:scale-95'
             }`}
           >
-            {loading ? 'Publication...' : 'Publier sur le portail →'}
+            {loading ? 'Publication en cours...' : 'Déployer sur APK Gateway'}
           </button>
         </form>
       </div>

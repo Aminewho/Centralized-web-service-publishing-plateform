@@ -13,8 +13,18 @@ public record ApiFullDetailsDto(
     String createdTime,
     Object endpointConfig,
     String gatewayUrl,
-    List<SubscriptionDto> subscriptions
+    List<SubscriptionDto> subscriptions,
+    List<OperationDto> operations // <--- Nouveau champ
 ) {
+    public record OperationDto(
+        String id,
+        String target,
+        String verb,
+        String authType,
+        String throttlingPolicy,
+        List<String> scopes,
+        Object operationPolicies // On peut le garder en Object pour simplifier
+    ) {}
     public record SubscriptionDto(
         String subscriptionId,
         ApplicationInfoDto applicationInfo,

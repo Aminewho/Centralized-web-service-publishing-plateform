@@ -5,6 +5,7 @@ import ApiListPage from './pages/ApiListPage';
 import ApiDetailsPage from './pages/ApiDetailsPage';
 import AppListPage from './pages/AppListPage';
 import AppDetailsPage from './pages/AppDetailsPage';
+import CreatePolicyPage from './pages/CreatePolicyPage';
 function App() {
   return (
     <Router>
@@ -24,6 +25,7 @@ function App() {
             {/* On pourra ajouter la route Applications ici plus tard */}
             <Route path="/applications" element={<AppListPage />} />
             <Route path="/application/:id" element={<AppDetailsPage />} />
+            <Route path="/policies" element={<CreatePolicyPage />} />
           </Routes>
         </main>
 

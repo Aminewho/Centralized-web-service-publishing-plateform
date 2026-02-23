@@ -6,8 +6,8 @@ const Navbar = () => {
   
   const tabs = [
     { id: 'apis', label: 'GESTION DES APIS', path: '/' },
-    { id: 'apps', label: 'APPLICATIONS & DEVS', path: '/applications' },
-    { id: 'admin', label: 'POLITIQUES & ADMIN', path: '/admin' }
+    { id: 'apps', label: 'GESTION DES APPLICATIONS ', path: '/applications' },
+    { id: 'admin', label: ' GESTION DES POLITIQUES', path: '/policies' }
   ];
 
  const isActive = (path) => {
@@ -64,7 +64,6 @@ const Navbar = () => {
           <div className="flex items-center space-x-4">
             <div className="text-right mr-2">
               <p className="text-xs font-bold text-[#3ab1bb]">ADMINISTRATEUR</p>
-              <p className="text-[11px] text-slate-300">a.ziadi@portail.tn</p>
             </div>
             <div className="h-10 w-10 bg-slate-700 border border-slate-600 rounded-lg flex items-center justify-center font-bold text-[#3ab1bb]">
               AZ
