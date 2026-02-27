@@ -5,6 +5,7 @@ const Navbar = () => {
   const location = useLocation();
   
   const tabs = [
+    { id: 'dashboard', label: 'DASHBOARD DE CONSOMMATION', path: '/dashboard' },
     { id: 'apis', label: 'GESTION DES APIS', path: '/' },
     { id: 'apps', label: 'GESTION DES APPLICATIONS ', path: '/applications' },
     { id: 'admin', label: ' GESTION DES POLITIQUES', path: '/policies' }

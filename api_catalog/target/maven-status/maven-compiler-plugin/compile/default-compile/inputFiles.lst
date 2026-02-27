@@ -22,8 +22,14 @@ C:\Users\a.ziadi\projets\api_catalog\src\main\java\com\rne\apiCatalog\v_2_0\DTOs
 C:\Users\a.ziadi\projets\api_catalog\src\main\java\com\rne\apiCatalog\v_2_0\DTOs\SubscriptionPolicyRequest.java
 C:\Users\a.ziadi\projets\api_catalog\src\main\java\com\rne\apiCatalog\v_2_0\DTOs\SubscriptionRequestDto.java
 C:\Users\a.ziadi\projets\api_catalog\src\main\java\com\rne\apiCatalog\v_2_0\DTOs\TokenRequestDto.java
+C:\Users\a.ziadi\projets\api_catalog\src\main\java\com\rne\apiCatalog\v_2_0\entity\ApiEntity.java
+C:\Users\a.ziadi\projets\api_catalog\src\main\java\com\rne\apiCatalog\v_2_0\entity\ApiOperationEntity.java
+C:\Users\a.ziadi\projets\api_catalog\src\main\java\com\rne\apiCatalog\v_2_0\entity\EndpointConfigColumns.java
 C:\Users\a.ziadi\projets\api_catalog\src\main\java\com\rne\apiCatalog\v_2_0\entity\HistoryEntity.java
+C:\Users\a.ziadi\projets\api_catalog\src\main\java\com\rne\apiCatalog\v_2_0\entity\UserAppEntity.java
+C:\Users\a.ziadi\projets\api_catalog\src\main\java\com\rne\apiCatalog\v_2_0\repository\ApiRepository.java
 C:\Users\a.ziadi\projets\api_catalog\src\main\java\com\rne\apiCatalog\v_2_0\repository\HistoryRepository.java
+C:\Users\a.ziadi\projets\api_catalog\src\main\java\com\rne\apiCatalog\v_2_0\repository\UserAppRepository.java
 C:\Users\a.ziadi\projets\api_catalog\src\main\java\com\rne\apiCatalog\v_2_0\service\ApplicationService.java
 C:\Users\a.ziadi\projets\api_catalog\src\main\java\com\rne\apiCatalog\v_2_0\service\HistoryService.java
 C:\Users\a.ziadi\projets\api_catalog\src\main\java\com\rne\apiCatalog\v_2_0\service\LogConsumer.java

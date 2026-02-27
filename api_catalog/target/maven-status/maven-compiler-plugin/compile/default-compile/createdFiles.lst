@@ -27,12 +27,17 @@ com\rne\apiCatalog\v_2_0\DTOs\ApiRequestDto.class
 com\rne\apiCatalog\v_2_0\DTOs\AppDetailsDto.class
 com\rne\apiCatalog\v_2_0\DTOs\ApiRequestDto$PolicyReference.class
 com\rne\apiCatalog\v_2_0\DTOs\SubscriptionPolicyRequest$RequestCount.class
+com\rne\apiCatalog\v_2_0\entity\ApiEntity.class
 com\rne\apiCatalog\v_2_0\Application.class
 com\rne\apiCatalog\v_2_0\DTOs\SubscriptionPolicyRequest$DefaultLimit.class
 com\rne\apiCatalog\v_2_0\service\ApplicationService.class
 com\rne\apiCatalog\v_2_0\DTOs\ApiRequestDto$EndpointDetails.class
+com\rne\apiCatalog\v_2_0\entity\EndpointConfigColumns.class
+com\rne\apiCatalog\v_2_0\entity\ApiOperationEntity.class
 com\rne\apiCatalog\v_2_0\controller\HistoryController.class
+com\rne\apiCatalog\v_2_0\repository\UserAppRepository.class
 com\rne\apiCatalog\v_2_0\controller\AddSubPolicyController.class
+com\rne\apiCatalog\v_2_0\repository\ApiRepository.class
 com\rne\apiCatalog\v_2_0\DTOs\AppDetailsDto$SubscriptionInfo.class
 com\rne\apiCatalog\v_2_0\DTOs\ApiFullDetailsDto$OperationDto.class
 com\rne\apiCatalog\v_2_0\DTOs\DeploymentConfig.class
@@ -48,6 +53,7 @@ com\rne\apiCatalog\v_2_0\DTOs\ApplicationBriefDto.class
 com\rne\apiCatalog\v_2_0\repository\HistoryRepository.class
 com\rne\apiCatalog\v_2_0\controller\ApplicationController.class
 com\rne\apiCatalog\v_2_0\DTOs\ApiRequestDto$Operation.class
+com\rne\apiCatalog\v_2_0\entity\UserAppEntity.class
 com\rne\apiCatalog\v_2_0\config\WebConfig$1.class
 com\rne\apiCatalog\v_2_0\controller\ApiDetailsController.class
 com\rne\apiCatalog\v_2_0\config\RestClientConfig.class

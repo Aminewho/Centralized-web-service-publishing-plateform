@@ -6,6 +6,7 @@ import ApiDetailsPage from './pages/ApiDetailsPage';
 import AppListPage from './pages/AppListPage';
 import AppDetailsPage from './pages/AppDetailsPage';
 import CreatePolicyPage from './pages/CreatePolicyPage';
+import ConsumptionDashboard from './components/ConsumptionDashboard';
 function App() {
   return (
     <Router>
@@ -18,7 +19,7 @@ function App() {
           <Routes>
             {/* Route pour la liste des APIs (Ta page de Cards style RNE) */}
             <Route path="/" element={<ApiListPage />} />
-            
+            <Route path="/dashboard" element={<ConsumptionDashboard />} />
             {/* Route dynamique pour les détails d'une API spécifique */}
             <Route path="/api/:id" element={<ApiDetailsPage />} />
             

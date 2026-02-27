@@ -1,9 +1,11 @@
 package com.rne.apiCatalog.v_2_0.service;
 
+import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -19,19 +21,23 @@ import com.rne.apiCatalog.v_2_0.DTOs.PolicySummaryDto;
 import com.rne.apiCatalog.v_2_0.DTOs.SubscriptionPolicyRequest;
 import com.rne.apiCatalog.v_2_0.DTOs.SubscriptionRequestDto;
 import com.rne.apiCatalog.v_2_0.DTOs.TokenRequestDto;
-
+import com.rne.apiCatalog.v_2_0.entity.ApiEntity;
+import com.rne.apiCatalog.v_2_0.entity.ApiOperationEntity;
+import com.rne.apiCatalog.v_2_0.entity.EndpointConfigColumns;
+import com.rne.apiCatalog.v_2_0.repository.ApiRepository;
 @Service
 public class Wso2ApiService {
 
     private final RestClient restClient;
     private final Wso2AuthService authService;
-    
+    private final ApiRepository apiRepository;
     private static final String PUBLISHER_PATH = "/api/am/publisher/v4.3";
     private static final String DEVPORTAL_PATH = "/api/am/devportal/v3.3";
 
     public Wso2ApiService(RestClient.Builder builder, Wso2AuthService authService, 
-                          @Value("${wso2.base-url}") String baseUrl) {
+                          @Value("${wso2.base-url}") String baseUrl, ApiRepository apiRepository) {
         this.authService = authService;
+        this.apiRepository = apiRepository;
         this.restClient = builder.baseUrl(baseUrl).build();
     }
 
@@ -287,7 +293,39 @@ public class Wso2ApiService {
                 .retrieve()
                 .toBodilessEntity();
 
-        return apiId;
+      String wso2Uuid = (String) apiResponse.get("id");
+
+        // ... (Exécution des étapes PUT, Revision, Deploy, Publish) ...
+ApiEntity localApi = new ApiEntity();
+localApi.setId(wso2Uuid);
+localApi.setName(apiRequest.name());
+// ... mapping des champs simples ...
+
+// Mapping EndpointConfig
+EndpointConfigColumns config = new EndpointConfigColumns();
+config.setEndpointType(apiRequest.endpointConfig().endpoint_type());
+config.setProductionUrl(apiRequest.endpointConfig().production_endpoints().url());
+config.setSandboxUrl(apiRequest.endpointConfig().sandbox_endpoints().url());
+localApi.setEndpointConfig(config);
+
+// Mapping Operations (Transformation Record -> Entity)
+List<ApiOperationEntity> opEntities = apiRequest.operations().stream().map(op -> {
+    ApiOperationEntity entity = new ApiOperationEntity();
+    entity.setTarget(op.target());
+    entity.setVerb(op.verb());
+    entity.setAuthType(op.authType());
+    entity.setThrottlingPolicy(op.throttlingPolicy());
+    return entity;
+}).collect(Collectors.toList());
+localApi.setOperations(opEntities);
+
+localApi.setTransport(apiRequest.transport());
+localApi.setPolicies(apiRequest.policies());
+localApi.setOnboardedAt(LocalDateTime.now());
+
+apiRepository.save(localApi);
+
+        return wso2Uuid;
     } catch (Exception e) {
         throw new RuntimeException("Erreur critique d'onboarding : " + e.getMessage());
     }

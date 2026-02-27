@@ -5,64 +5,80 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 
 import com.rne.apiCatalog.v_2_0.DTOs.AppDetailsDto;
 import com.rne.apiCatalog.v_2_0.DTOs.ApplicationBriefDto;
 import com.rne.apiCatalog.v_2_0.DTOs.ApplicationRequestDto;
+import com.rne.apiCatalog.v_2_0.entity.UserAppEntity;
+import com.rne.apiCatalog.v_2_0.repository.UserAppRepository;
+
 @Service
 public class ApplicationService {
 
     private final RestClient devPortalClient;
     private final Wso2AuthService authService;
+    private final UserAppRepository userAppRepository;
 
     public ApplicationService(RestClient.Builder builder, Wso2AuthService authService,
+                              UserAppRepository userAppRepository,
                               @Value("${wso2.base-url}") String baseUrl) {
         this.authService = authService;
+        this.userAppRepository = userAppRepository;
         // On cible l'API DevPortal pour la gestion des applications
         this.devPortalClient = builder.baseUrl(baseUrl + "/api/am/devportal/v3.3").build();
     }
 
-  public ApplicationRequestDto.CombinedResponse createApplicationWithKeys(ApplicationRequestDto request) {
-        String token = authService.getAccessToken();
+  @Transactional
+public ApplicationRequestDto.CombinedResponse createApplicationWithKeys( ApplicationRequestDto request) {
+    String token = authService.getAccessToken();
 
-        // ÉTAPE 1 : Création de l'application
-        Map<String, Object> appResponse = devPortalClient.post()
-                .uri("/applications")
-                .header("Authorization", "Bearer " + token)
-                .body(request)
-                .retrieve()
-                .body(Map.class);
+    // ÉTAPE 1 : Création de l'application côté WSO2
+    Map<String, Object> appResponse = devPortalClient.post()
+            .uri("/applications")
+            .header("Authorization", "Bearer " + token)
+            .body(request)
+            .retrieve()
+            .body(Map.class);
 
-        String appId = (String) appResponse.get("applicationId");
+    String appId = (String) appResponse.get("applicationId");
 
-        // ÉTAPE 2 : Préparation de la demande de génération de clés
-        var keyGenBody = new ApplicationRequestDto.KeyGenRequest(
-                "PRODUCTION",
-                "Resident Key Manager",
-                List.of("password", "client_credentials"),
-                "http://sample.com/callback/url",
-                List.of("am_application_scope", "default"),
-                3600
-        );
+    // ÉTAPE 2 & 3 : Génération des clés
+    var keyGenBody = new ApplicationRequestDto.KeyGenRequest(
+            "PRODUCTION", "Resident Key Manager",
+            List.of("password", "client_credentials"),
+            "http://sample.com/callback/url",
+            List.of("am_application_scope", "default"),
+            3600
+    );
 
-        // ÉTAPE 3 : Génération des clés
-        Map<String, Object> keyResponse = devPortalClient.post()
-                .uri("/applications/{applicationId}/generate-keys", appId)
-                .header("Authorization", "Bearer " + token)
-                .body(keyGenBody)
-                .retrieve()
-                .body(Map.class);
+    Map<String, Object> keyResponse = devPortalClient.post()
+            .uri("/applications/{applicationId}/generate-keys", appId)
+            .header("Authorization", "Bearer " + token)
+            .body(keyGenBody)
+            .retrieve()
+            .body(Map.class);
 
-        // ÉTAPE 4 : Assemblage de la réponse finale
-        return new ApplicationRequestDto.CombinedResponse(
-                appId,
-                (String) appResponse.get("name"),
-                (String) keyResponse.get("consumerKey"),
-                (String) keyResponse.get("consumerSecret"),
-                (String) keyResponse.get("keyState")
-        );
-    }
+    // ÉTAPE 4 : Enregistrement dans la table unique
+    UserAppEntity userApp = new UserAppEntity();
+    
+    userApp.setApplicationId(appId);
+    userApp.setApplicationName((String) appResponse.get("name"));
+    userApp.setConsumerKey((String) keyResponse.get("consumerKey"));
+    userApp.setConsumerSecret((String) keyResponse.get("consumerSecret"));
+    userApp.setKeyState((String) keyResponse.get("keyState"));
+
+    userAppRepository.save(userApp); // Sauvegarde locale
+
+    return new ApplicationRequestDto.CombinedResponse(
+            appId,
+            userApp.getApplicationName(),
+            userApp.getConsumerKey(),
+            userApp.getConsumerSecret(),
+            userApp.getKeyState()
+    );
+}
   public AppDetailsDto getAppDetails(String appId) {
     String token = authService.getAccessToken();
 
