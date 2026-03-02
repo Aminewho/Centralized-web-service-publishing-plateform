@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
-
+import org.springframework.transaction.annotation.Transactional;
 import com.rne.apiCatalog.v_2_0.DTOs.ApiBriefDto;
 import com.rne.apiCatalog.v_2_0.DTOs.ApiFullDetailsDto;
 import com.rne.apiCatalog.v_2_0.DTOs.ApiRequestDto;
@@ -95,24 +95,41 @@ public class Wso2ApiService {
             .toList();
 }
     // --- AJOUT: updateApiSubscriptionPolicies (Requis par ApiPolicyController) ---
-    public void updateApiSubscriptionPolicies(String apiId, List<String> newPolicies) {
-        String token = authService.getAccessToken();
+ @Transactional // Crucial pour s'assurer que si la DB échoue, on peut gérer l'état
+public void updateApiSubscriptionPolicies(String apiId, List<String> newPolicies) {
+    // 1. Vérifier d'abord si l'API existe dans notre DB locale
+    ApiEntity apiEntity = apiRepository.findById(apiId)
+            .orElseThrow(() -> new RuntimeException("API non trouvée dans la base locale : " + apiId));
 
-        Map<String, Object> currentApi = restClient.get()
-                .uri(PUBLISHER_PATH + "/apis/{apiId}", apiId)
-                .header("Authorization", "Bearer " + token)
-                .retrieve()
-                .body(Map.class);
+    String token = authService.getAccessToken();
+    String authHeader = "Bearer " + token;
 
-        currentApi.put("policies", newPolicies);
+    // 2. Récupération de l'état actuel sur WSO2
+    Map<String, Object> currentApi = restClient.get()
+            .uri(PUBLISHER_PATH + "/apis/{apiId}", apiId)
+            .header("Authorization", authHeader)
+            .retrieve()
+            .body(Map.class);
 
-        restClient.put()
-                .uri(PUBLISHER_PATH + "/apis/{apiId}", apiId)
-                .header("Authorization", "Bearer " + token)
-                .body(currentApi)
-                .retrieve()
-                .toBodilessEntity();
-    }
+    // 3. Mise à jour de l'objet pour WSO2
+    currentApi.put("policies", newPolicies);
+
+    // 4. Envoi de la mise à jour à WSO2
+    restClient.put()
+            .uri(PUBLISHER_PATH + "/apis/{apiId}", apiId)
+            .header("Authorization", authHeader)
+            .body(currentApi)
+            .retrieve()
+            .toBodilessEntity();
+
+    // 5. Mise à jour de la base de données locale
+    // Comme c'est une @ElementCollection, on remplace simplement la liste
+    apiEntity.setPolicies(newPolicies);
+    
+    // Pas besoin de save() explicite si tu es dans une méthode @Transactional,
+    // mais on le met pour la clarté.
+    apiRepository.save(apiEntity); 
+}
 
     // --- getApiFullDetails (Optimisé avec DevPortal fallback) ---
  public ApiFullDetailsDto getApiFullDetails(String apiId) {
