@@ -20,6 +20,7 @@ public class HistoryEntity {
 
     private String applicationName;
     private String apiName;
+    private String subscriptionId; // Pour faire le lien avec la souscription
     private String verb;
     private String path;
     private String status; // PENDING, SUCCESS, ERROR
@@ -74,7 +75,12 @@ private Long duration; // Durée en millisecondes
     public void setApiName(String apiName) {
         this.apiName = apiName;
     }
-
+public String getSubscriptionId() {
+        return subscriptionId;
+    }
+    public void setSubscriptionId(String subscriptionId) {
+        this.subscriptionId = subscriptionId;
+    }
     public String getVerb() {
         return verb;
     }

@@ -3,6 +3,7 @@ com\rne\apiCatalog\v_2_0\config\RestClientConfig$1.class
 com\rne\apiCatalog\v_2_0\DTOs\ApiBriefDto.class
 com\rne\apiCatalog\v_2_0\DTOs\ApiBriefDto$ListResponse.class
 com\rne\apiCatalog\v_2_0\service\Wso2AddPolicy.class
+com\rne\apiCatalog\v_2_0\repository\SubscriptionRepository.class
 com\rne\apiCatalog\v_2_0\DTOs\TokenRequestDto.class
 com\rne\apiCatalog\v_2_0\config\WebConfig.class
 com\rne\apiCatalog\v_2_0\DTOs\PolicySelectionDto.class
@@ -21,6 +22,7 @@ com\rne\apiCatalog\v_2_0\DTOs\ApiFullDetailsDto$SubscriptionDto.class
 com\rne\apiCatalog\v_2_0\DTOs\AppDetailsDto$ApiBriefInfo.class
 com\rne\apiCatalog\v_2_0\DTOs\ApiOnboardingRequest.class
 com\rne\apiCatalog\v_2_0\controller\ApiPolicyController.class
+com\rne\apiCatalog\v_2_0\entity\SubscriptionEntity.class
 com\rne\apiCatalog\v_2_0\service\LogConsumer.class
 com\rne\apiCatalog\v_2_0\controller\ApiPublisherController.class
 com\rne\apiCatalog\v_2_0\DTOs\ApiRequestDto.class

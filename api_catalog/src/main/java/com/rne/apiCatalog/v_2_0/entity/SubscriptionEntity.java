@@ -15,19 +15,15 @@ import lombok.Setter;
 public class SubscriptionEntity {
 
     @Id
-    private String id; // UUID de WSO2
+    private String id; 
 
     private String applicationId;
     private String apiId;
     private String throttlingPolicy;
     private int requestCount = 0;
     private int maxRequestLimit;
-    
-    // Le statut textuel de WSO2 (ex: "UNBLOCKED", "BLOCKED")
-    private String status; 
-
-    // Ton nouvel attribut : est-ce que l'abonnement est utilisable ?
     private boolean active; 
 
     private LocalDateTime subscriptionDate;
+    private LocalDateTime expirationDate; // Sera NULL tant que le quota n'est pas atteint
 }

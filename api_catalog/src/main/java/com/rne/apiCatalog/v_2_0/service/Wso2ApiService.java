@@ -9,10 +9,11 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
-import org.springframework.transaction.annotation.Transactional;
+
 import com.rne.apiCatalog.v_2_0.DTOs.ApiBriefDto;
 import com.rne.apiCatalog.v_2_0.DTOs.ApiFullDetailsDto;
 import com.rne.apiCatalog.v_2_0.DTOs.ApiRequestDto;
@@ -24,20 +25,29 @@ import com.rne.apiCatalog.v_2_0.DTOs.TokenRequestDto;
 import com.rne.apiCatalog.v_2_0.entity.ApiEntity;
 import com.rne.apiCatalog.v_2_0.entity.ApiOperationEntity;
 import com.rne.apiCatalog.v_2_0.entity.EndpointConfigColumns;
+import com.rne.apiCatalog.v_2_0.entity.SubscriptionEntity;
 import com.rne.apiCatalog.v_2_0.repository.ApiRepository;
+import com.rne.apiCatalog.v_2_0.repository.SubscriptionRepository;
+
+
+
+
 @Service
 public class Wso2ApiService {
 
     private final RestClient restClient;
     private final Wso2AuthService authService;
     private final ApiRepository apiRepository;
+    private final SubscriptionRepository subscriptionRepository;
+    // Injecté pour éviter les appels redondants à la DB dans LogConsumer
     private static final String PUBLISHER_PATH = "/api/am/publisher/v4.3";
     private static final String DEVPORTAL_PATH = "/api/am/devportal/v3.3";
 
     public Wso2ApiService(RestClient.Builder builder, Wso2AuthService authService, 
-                          @Value("${wso2.base-url}") String baseUrl, ApiRepository apiRepository) {
+                          @Value("${wso2.base-url}") String baseUrl, ApiRepository apiRepository, SubscriptionRepository subscriptionRepository) {
         this.authService = authService;
         this.apiRepository = apiRepository;
+        this.subscriptionRepository = subscriptionRepository;
         this.restClient = builder.baseUrl(baseUrl).build();
     }
 
@@ -371,18 +381,48 @@ public List<PolicySummaryDto> getAvailablePolicies() {
             ))
             .toList();
 }
+@Transactional
 public Map<String, Object> createSubscription(SubscriptionRequestDto request) {
     String token = authService.getAccessToken();
 
-    // On doit utiliser le chemin complet du DevPortal
-    return restClient.post()
+    // 1. Appel WSO2 DevPortal pour créer la souscription
+    Map<String, Object> response = restClient.post()
             .uri(DEVPORTAL_PATH + "/subscriptions")
             .header("Authorization", "Bearer " + token)
-            .header("Content-Type", "application/json") // Bonne pratique
             .body(request)
             .retrieve()
-            .body(Map.class); 
+            .body(Map.class);
+
+    if (response != null && response.containsKey("subscriptionId")) {
+        
+        // 2. Récupération du quota via ta méthode existante
+        List<SubscriptionPolicyRequest> allPolicies = this.getAllSubscriptionPolicies();
+        
+        // On cherche le requestCount correspondant au nom de la politique demandée
+       // On cherche le requestCount correspondant
+        int dynamicLimit = allPolicies.stream()
+        .filter(p -> p.policyName().equalsIgnoreCase(request.throttlingPolicy())) // policyName() au lieu de getPolicyName()
+        .map(SubscriptionPolicyRequest::requestCount) // requestCount() au lieu de getRequestCount()
+        .findFirst()
+        .orElse(1000);// Sécurité : 1000 par défaut si non trouvé
+
+        // 3. Persistance dans Oracle
+        SubscriptionEntity entity = new SubscriptionEntity();
+        entity.setId((String) response.get("subscriptionId"));
+        entity.setApplicationId(request.applicationId());
+        entity.setApiId(request.apiId());
+        entity.setThrottlingPolicy(request.throttlingPolicy());
+        entity.setActive(true);
+        entity.setSubscriptionDate(LocalDateTime.now());
+        entity.setExpirationDate(null); // Reste null jusqu'à épuisement du quota
+        entity.setRequestCount(0);
+        entity.setMaxRequestLimit(dynamicLimit);
+
+        subscriptionRepository.save(entity);
+    }
+    return response;
 }
+
 
 public Map<String, Object> generateAppToken(TokenRequestDto request) {
     // 1. Préparation de l'authentification Basic (Base64)
