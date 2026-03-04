@@ -20,13 +20,15 @@ import jakarta.persistence.JoinColumn;
     
 import jakarta.persistence.Embedded;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.Column;
 @Entity
 @Table(name = "apis")
 @Getter @Setter
 public class ApiEntity {
     @Id
     private String id;
-    private String name;
+@Column(unique = true, nullable = false)   
+ private String name;
     private String context;
     private String version;
     private String description;

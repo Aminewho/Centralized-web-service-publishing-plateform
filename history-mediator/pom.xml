@@ -7,6 +7,7 @@
     <artifactId>history-mediator</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
+  
 <dependencies>
         <dependency>
             <groupId>org.apache.synapse</groupId>
@@ -20,7 +21,20 @@
         <version>5.19.0</version>
         <scope>compile</scope>
     </dependency>
+    <dependency>
+        <groupId>org.wso2.carbon.apimgt</groupId>
+        <artifactId>org.wso2.carbon.apimgt.gateway</artifactId>
+        <version>9.0.174</version> <!-- APIM 4.5 ships with this version -->
+        <scope>provided</scope>
+    </dependency>
 
+    <!-- WSO2 APIM Impl — fallback if AuthenticationContext is in impl module -->
+    <dependency>
+        <groupId>org.wso2.carbon.apimgt</groupId>
+        <artifactId>org.wso2.carbon.apimgt.impl</artifactId>
+        <version>9.0.174</version>
+        <scope>provided</scope>
+    </dependency>
         
         <dependency>
             <groupId>org.apache.axis2</groupId>

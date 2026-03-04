@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
@@ -385,7 +386,7 @@ public List<PolicySummaryDto> getAvailablePolicies() {
 public Map<String, Object> createSubscription(SubscriptionRequestDto request) {
     String token = authService.getAccessToken();
 
-    // 1. Appel WSO2 DevPortal pour créer la souscription
+    // 1. Appel WSO2 DevPortal
     Map<String, Object> response = restClient.post()
             .uri(DEVPORTAL_PATH + "/subscriptions")
             .header("Authorization", "Bearer " + token)
@@ -395,30 +396,48 @@ public Map<String, Object> createSubscription(SubscriptionRequestDto request) {
 
     if (response != null && response.containsKey("subscriptionId")) {
         
-        // 2. Récupération du quota via ta méthode existante
-        List<SubscriptionPolicyRequest> allPolicies = this.getAllSubscriptionPolicies();
-        
-        // On cherche le requestCount correspondant au nom de la politique demandée
-       // On cherche le requestCount correspondant
-        int dynamicLimit = allPolicies.stream()
-        .filter(p -> p.policyName().equalsIgnoreCase(request.throttlingPolicy())) // policyName() au lieu de getPolicyName()
-        .map(SubscriptionPolicyRequest::requestCount) // requestCount() au lieu de getRequestCount()
-        .findFirst()
-        .orElse(1000);// Sécurité : 1000 par défaut si non trouvé
+        // 2. Extraction directe des noms depuis la réponse JSON de WSO2
+        Map<String, Object> apiInfo = (Map<String, Object>) response.get("apiInfo");
+        Map<String, Object> appInfo = (Map<String, Object>) response.get("applicationInfo");
 
-        // 3. Persistance dans Oracle
+        String actualApiName = (String) apiInfo.get("name");
+        String actualAppName = (String) appInfo.get("name");
+
+        // 3. Récupération dynamique du quota (ton itérateur sur allPolicies)
+        List<SubscriptionPolicyRequest> allPolicies = this.getAllSubscriptionPolicies();
+        int dynamicLimit = allPolicies.stream()
+            .filter(p -> p.policyName().equalsIgnoreCase(request.throttlingPolicy()))
+            .map(SubscriptionPolicyRequest::requestCount)
+            .findFirst()
+            .orElse(1000);
+
+        // 4. Création de l'entité avec les contraintes d'unicité (UK_APP_API_NAME)
         SubscriptionEntity entity = new SubscriptionEntity();
+        
+        // Identifiants techniques
         entity.setId((String) response.get("subscriptionId"));
         entity.setApplicationId(request.applicationId());
         entity.setApiId(request.apiId());
+        
+        // Identifiants Métier (Clés pour l'unicité)
+        entity.setApplicationName(actualAppName); // "test1"
+        entity.setApiName(actualApiName);         // "new"
+        
+        // Données Quota et État
         entity.setThrottlingPolicy(request.throttlingPolicy());
+        entity.setMaxRequestLimit(dynamicLimit);
+        entity.setRequestCount(0);
         entity.setActive(true);
         entity.setSubscriptionDate(LocalDateTime.now());
-        entity.setExpirationDate(null); // Reste null jusqu'à épuisement du quota
-        entity.setRequestCount(0);
-        entity.setMaxRequestLimit(dynamicLimit);
+        entity.setExpirationDate(null);
 
-        subscriptionRepository.save(entity);
+        try {
+            subscriptionRepository.save(entity);
+        } catch (DataIntegrityViolationException e) {
+            // Déclenché si (actualAppName, actualApiName) existe déjà en base
+            throw new RuntimeException("Erreur : L'application '" + actualAppName + 
+                                       "' est déjà liée à l'API '" + actualApiName + "'.");
+        }
     }
     return response;
 }

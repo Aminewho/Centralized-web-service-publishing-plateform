@@ -6,7 +6,6 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rne.apiCatalog.v_2_0.entity.HistoryEntity;
 import com.rne.apiCatalog.v_2_0.repository.HistoryRepository;
@@ -25,48 +24,44 @@ public class LogConsumer {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @RabbitListener(queues = "api_logs")
+@RabbitListener(queues = "api_logs")
 @Transactional
 public void receiveLog(String message) {
     try {
         Map<String, Object> payload = objectMapper.readValue(message, Map.class);
-        
-        // 1. Enregistrement dans l'historique avec le SUB ID
-        HistoryEntity history = new HistoryEntity();
-        history.setApiName((String) payload.get("apiName"));
-        history.setStatus((String) payload.get("status"));
-        history.setDuration(Long.valueOf(payload.get("duration").toString()));
-        history.setVerb((String) payload.get("verb"));
-        history.setPath((String) payload.get("path"));
-        history.setApplicationName((String) payload.get("applicationName"));
-        history.setCorrelationId((String) payload.get("correlationId"));
-        
-        // On récupère le subId envoyé par le médiateur WSO2
-        String subId = (String) payload.get("subscriptionId"); 
-        history.setSubscriptionId(subId); 
-        
-        historyRepository.save(history);
+        String appName = (String) payload.get("applicationName");
+        String apiName = (String) payload.get("apiName");
 
-        // 2. Logique de Quota et Validité
-        if (subId != null) {
-            subscriptionRepository.findById(subId).ifPresent(sub -> {
-                LocalDateTime now = LocalDateTime.now();
-
-                // Vérification Quota OU Expiration
-                if (sub.isActive()) {
-                    boolean expired = sub.getExpirationDate() != null && now.isAfter(sub.getExpirationDate());
-                    boolean quotaReached = sub.getRequestCount() >= sub.getMaxRequestLimit();
-
-                    if (expired || quotaReached) {
-                        sub.setActive(false);
-                    } else {
-                        sub.setRequestCount(sub.getRequestCount() + 1);
-                    }
-                    subscriptionRepository.save(sub);
+        // Recherche de la SEULE souscription active
+        subscriptionRepository.findByApiNameAndApplicationNameAndActiveTrue(apiName, appName)
+            .ifPresentOrElse(sub -> {
+                // On met à jour le quota de la souscription actuelle
+                sub.setRequestCount(sub.getRequestCount() + 1);
+                
+                if (sub.getRequestCount() >= sub.getMaxRequestLimit()) {
+                    sub.setActive(false); // On désactive car quota atteint
+                    sub.setExpirationDate(LocalDateTime.now());
                 }
+                subscriptionRepository.save(sub);
+                
+                // Sauvegarde historique liée à l'ID technique de la souscription active
+                saveHistory(payload, sub.getId());
+                
+            }, () -> {
+                // Cas où l'app a été supprimée de WSO2 mais le log arrive encore (ou désynchronisation)
+                saveHistory(payload, null);
             });
-        }
-        
+
     } catch (Exception e) {
+    }
 }
-}}
+
+private void saveHistory(Map<String, Object> payload, String subId) {
+    HistoryEntity history = new HistoryEntity();
+    history.setApiName((String) payload.get("apiName"));
+    history.setApplicationName((String) payload.get("applicationName"));
+    history.setSubscriptionId(subId); // Sera null si aucune souscription active trouvée
+    // ... autres champs ...
+    historyRepository.save(history);
+}
+}

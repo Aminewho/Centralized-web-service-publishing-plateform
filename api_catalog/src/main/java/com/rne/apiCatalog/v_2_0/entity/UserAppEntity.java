@@ -1,4 +1,5 @@
 package com.rne.apiCatalog.v_2_0.entity;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -17,8 +18,8 @@ public class UserAppEntity {
   
 
     // Infos Application WSO2 (Miroir de ce qu'on reçoit)
-    private String applicationName;
-    private String consumerKey;
+@Column(unique = true, nullable = false)
+    private String applicationName;    private String consumerKey;
     private String consumerSecret;
     private String keyState;
 }
