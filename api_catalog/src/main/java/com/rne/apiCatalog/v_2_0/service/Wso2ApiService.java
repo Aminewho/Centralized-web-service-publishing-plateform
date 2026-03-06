@@ -2,6 +2,7 @@ package com.rne.apiCatalog.v_2_0.service;
 
 import java.time.LocalDateTime;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,15 +41,17 @@ public class Wso2ApiService {
     private final Wso2AuthService authService;
     private final ApiRepository apiRepository;
     private final SubscriptionRepository subscriptionRepository;
+    private final SubscriptionService subscriptionService; // Injecté pour éviter les appels redondants à la DB dans LogConsumer
     // Injecté pour éviter les appels redondants à la DB dans LogConsumer
     private static final String PUBLISHER_PATH = "/api/am/publisher/v4.3";
     private static final String DEVPORTAL_PATH = "/api/am/devportal/v3.3";
 
     public Wso2ApiService(RestClient.Builder builder, Wso2AuthService authService, 
-                          @Value("${wso2.base-url}") String baseUrl, ApiRepository apiRepository, SubscriptionRepository subscriptionRepository) {
+                          @Value("${wso2.base-url}") String baseUrl, ApiRepository apiRepository, SubscriptionRepository subscriptionRepository, SubscriptionService subscriptionService) {
         this.authService = authService;
         this.apiRepository = apiRepository;
         this.subscriptionRepository = subscriptionRepository;
+        this.subscriptionService = subscriptionService; // Injection du service de subscription
         this.restClient = builder.baseUrl(baseUrl).build();
     }
 
@@ -489,4 +492,83 @@ public List<SubscriptionPolicyRequest> getAllSubscriptionPolicies() {
             .filter(p -> !"DefaultSubscriptionless".equalsIgnoreCase(p.policyName()))
             .toList();
 }
+ public List<String> getPoliciesForApi(String apiName) {
+        List<String> policies = apiRepository.findPoliciesByApiName(apiName);
+        
+        if (policies == null || policies.isEmpty()) {
+            // Optionnel : Tu peux lever une exception si le nom de l'API est invalide
+            // throw new ResourceNotFoundException("API non trouvée : " + apiName);
+            return Collections.emptyList();
+        }
+        
+        return policies;
+}
+public List<ApiOperationEntity> getOperationsByApi(String apiName) {
+        List<ApiOperationEntity> operations = apiRepository.findOperationsByApiName(apiName);
+        
+        return (operations != null) ? operations : Collections.emptyList();
+    }
+    public ApiFullDetailsDto getApiFullDetailsOptimized(String apiName) {
+        // 1. RÉCUPÉRATION LOCALE (Depuis Oracle)
+        // On récupère l'entité complète (incluant endpointConfig, status, etc.)
+        ApiEntity api = apiRepository.findByApiName(apiName)
+                .orElseThrow(() -> new RuntimeException("API non trouvée localement : " + apiName));
+
+        // 2. APPELS AUX MÉTHODES DE BACKUP (LOCALES)
+        List<ApiOperationEntity> operations = getOperationsByApi(apiName);
+        List<String> attachedPolicies = getPoliciesForApi(apiName);
+        List<SubscriptionEntity> activeSubs = subscriptionService.getActiveSubscribers(apiName);
+
+        // 3. APPEL WSO2 (Uniquement pour les politiques disponibles)
+        // On récupère la liste globale des politiques pour savoir lesquelles sont sélectionnables
+        List<PolicySummaryDto> availableOperationPolicies = getAvailablePolicies();
+
+        // 4. MAPPING DES POLICIES DE SOUSCRIPTION (PolicySelectionDto)
+        // On croise les politiques attachées à l'API avec une liste de référence (si nécessaire)
+        // Ici, on transforme les strings de la DB en PolicySelectionDto
+        List<PolicySelectionDto> subscriptionPolicies = attachedPolicies.stream()
+                .map(pName -> new PolicySelectionDto(pName, true))
+                .toList();
+
+        // 5. CONSTRUCTION DU DTO FINAL
+        return new ApiFullDetailsDto(
+            api.getId(),
+            api.getName(),
+            api.getDescription(),
+            api.getContext(),
+            api.getVersion(),
+            api.getStatus(),
+            subscriptionPolicies,
+            api.getOnboardedAt() != null ? api.getOnboardedAt().toString() : null,
+            api.getEndpointConfig(), 
+            null, // Gateway URL (peut être stocké en DB aussi pour éviter l'appel DevPortal)
+            mapToSubscriptionDtos(activeSubs), // Conversion Entité -> DTO
+            mapToOperationDtos(operations)     // Conversion Entité -> DTO
+        );
+    }
+
+    // Helper pour convertir les souscriptions locales en DTO
+    private List<ApiFullDetailsDto.SubscriptionDto> mapToSubscriptionDtos(List<SubscriptionEntity> entities) {
+        return entities.stream().map(sub -> new ApiFullDetailsDto.SubscriptionDto(
+            sub.getId(),
+            new ApiFullDetailsDto.ApplicationInfoDto(
+                sub.getApplicationId(), sub.getApplicationName(), null, null
+            ),
+            sub.getThrottlingPolicy(),
+            sub.isActive() ? "UNBLOCKED" : "BLOCKED"
+        )).toList();
+    }
+
+    // Helper pour convertir les opérations locales en DTO
+    private List<ApiFullDetailsDto.OperationDto> mapToOperationDtos(List<ApiOperationEntity> entities) {
+        return entities.stream().map(op -> new ApiFullDetailsDto.OperationDto(
+            op.getId().toString(),
+            op.getTarget(),
+            op.getVerb(),
+            null, // authType si dispo en DB
+            op.getThrottlingPolicy(),
+            null, // scopes
+            null  // operationPolicies
+        )).toList();
+    }
 }

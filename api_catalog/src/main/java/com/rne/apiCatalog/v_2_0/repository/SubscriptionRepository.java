@@ -12,8 +12,11 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
     // Recherche standard par ID (héritée de JpaRepository)
 Optional<SubscriptionEntity> findByApiNameAndApplicationNameAndActiveTrue(String apiName, String applicationName);
 // Trouve toutes les souscriptions actives pour une application donnée
-    List<SubscriptionEntity> findByApplicationIdAndActiveTrue(String applicationId);
+// Récupère toutes les souscriptions actives pour une application (par son nom)
+    List<SubscriptionEntity> findByApplicationNameAndActiveTrue(String applicationName);
 
-    // Trouve toutes les souscriptions inactives (quota atteint) pour une application donnée
-    List<SubscriptionEntity> findByApplicationIdAndActiveFalse(String applicationId);
+    // Récupère toutes les souscriptions inactives pour une application (par son nom)
+    List<SubscriptionEntity> findByApplicationNameAndActiveFalse(String applicationName);
+    List<SubscriptionEntity> findByApiNameAndActiveTrue(String apiName);
+
 }

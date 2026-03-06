@@ -19,7 +19,8 @@ public class UserAppEntity {
 
     // Infos Application WSO2 (Miroir de ce qu'on reçoit)
 @Column(unique = true, nullable = false)
-    private String applicationName;    private String consumerKey;
+    private String applicationName;  
+      private String consumerKey;
     private String consumerSecret;
     private String keyState;
 }

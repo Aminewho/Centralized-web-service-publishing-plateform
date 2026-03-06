@@ -15,20 +15,22 @@ import com.rne.apiCatalog.v_2_0.service.HistoryService;
 
 
 
-
 @RestController
 @RequestMapping("/api/history")
 public class HistoryController {
 
     @Autowired
     private HistoryService historyService;
-@GetMapping("/search")
-public List<HistoryEntity> getLogs(
-    @RequestParam(required = false) String appName,
-    @RequestParam(required = false) String apiName,
-    @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
-    @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end
-) {
-    return historyService.searchLogs(appName, apiName, start, end);
-}
+
+    @GetMapping("/search")
+    public List<HistoryEntity> getLogs(
+            @RequestParam(required = false) String appName,
+            @RequestParam(required = false) String apiName,
+            @RequestParam(required = false) String subscriptionId, // Nouveau paramètre
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end
+    ) {
+        // On passe désormais les 5 paramètres au service
+        return historyService.searchLogs(appName, apiName, subscriptionId, start, end);
+    }
 }

@@ -37,6 +37,7 @@ com\rne\apiCatalog\v_2_0\DTOs\ApiRequestDto$EndpointDetails.class
 com\rne\apiCatalog\v_2_0\entity\EndpointConfigColumns.class
 com\rne\apiCatalog\v_2_0\entity\ApiOperationEntity.class
 com\rne\apiCatalog\v_2_0\controller\HistoryController.class
+com\rne\apiCatalog\v_2_0\service\SubscriptionService.class
 com\rne\apiCatalog\v_2_0\repository\UserAppRepository.class
 com\rne\apiCatalog\v_2_0\controller\AddSubPolicyController.class
 com\rne\apiCatalog\v_2_0\repository\ApiRepository.class

@@ -44,11 +44,11 @@ private final SubscriptionService subscriptionService;
     }
     @GetMapping("/{appId}/subscriptions/active")
     public List<SubscriptionEntity> getActive(@PathVariable String appId) {
-        return subscriptionService.getActiveSubscriptionsByApp(appId);
+        return subscriptionService.getActiveSubscriptionsByAppName(appId);
     }
 
     @GetMapping("/{appId}/subscriptions/inactive")
     public List<SubscriptionEntity> getInactive(@PathVariable String appId) {
-        return subscriptionService.getInactiveSubscriptionsByApp(appId);
+        return subscriptionService.getInactiveSubscriptionsByAppName(appId);
     }
 }

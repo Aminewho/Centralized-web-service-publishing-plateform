@@ -13,17 +13,15 @@ public class SubscriptionService {
     @Autowired
     private SubscriptionRepository subscriptionRepository;
 
-    /**
-     * Récupère les souscriptions en cours de validité (quota non atteint)
-     */
-    public List<SubscriptionEntity> getActiveSubscriptionsByApp(String applicationId) {
-        return subscriptionRepository.findByApplicationIdAndActiveTrue(applicationId);
+    public List<SubscriptionEntity> getActiveSubscriptionsByAppName(String appName) {
+        return subscriptionRepository.findByApplicationNameAndActiveTrue(appName);
     }
 
-    /**
-     * Récupère les souscriptions expirées ou supprimées
-     */
-    public List<SubscriptionEntity> getInactiveSubscriptionsByApp(String applicationId) {
-        return subscriptionRepository.findByApplicationIdAndActiveFalse(applicationId);
+    public List<SubscriptionEntity> getInactiveSubscriptionsByAppName(String appName) {
+        return subscriptionRepository.findByApplicationNameAndActiveFalse(appName);
     }
+    public List<SubscriptionEntity> getActiveSubscribers(String apiName) {
+        return subscriptionRepository.findByApiNameAndActiveTrue(apiName);
+    }
+    
 }
